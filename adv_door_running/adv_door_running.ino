@@ -8,6 +8,12 @@ changelog
 - L155 added 2-stage rPos reset 
 - ***delayed touch (unknown reason)s
 
+18 JUN 2021 (FRI)
+- L160 added non-blocking delay for stable servo positioning
+
+17 SEP 2021 (FRI)
+- added info display for system pinouts at serial. Data can be fetch from serial monitor upon booting the system
+
 */
 
 
@@ -50,6 +56,8 @@ bool rPos = 0;
 
 bool reedStatus = 1;
 bool reset = 0;
+
+unsigned long time_start = 0;
 
 //----------------------------------------------------------------
 
@@ -122,6 +130,29 @@ void package(){
        motorState();
   }
 
+void info(){
+  Serial.println(" ADVDOOR INFO - WELCOME ");
+  Serial.println("INPUT");
+  Serial.print("Capacitive touch");
+  Serial.println("    A0");
+  Serial.print("Auto Toggle");
+  Serial.println("    A1");
+  Serial.print("Reed Switch");
+  Serial.println("    A2");
+  Serial.println("OUTPUT");
+  Serial.print("IR RECV");
+  Serial.println("    D4");
+  Serial.print("LED A");
+  Serial.println("    D8");
+  Serial.print("LED B");
+  Serial.println("    D6");
+  Serial.print("MOTOR MOSFET");
+  Serial.println("    D7");
+  Serial.print("SERVO");
+  Serial.println("    D9");
+  Serial.println("------------------------------------");
+  Serial.println("");
+}
 
 void setup() {  
   Serial.begin(9600);
@@ -136,7 +167,7 @@ void setup() {
   for(int i=0;i<10;i++){
   lSt(1, 1);delay(50);lSt(0, 0);delay(50);
   }
-
+  info();
   lock = digitalRead(reedSw);
 
   //------------------------RFID------------------------------------
@@ -150,8 +181,40 @@ void setup() {
 
 void motor(){
   
-  if(!rPos){if(lock){myservo.write(115);delay(200);myservo.write(87);rPos = 1;}else{myservo.write(53);delay(200);myservo.write(87);rPos = 1;} 
+//  if(!rPos){if(lock){myservo.write(115);delay(200);myservo.write(87);rPos = 1;}else{myservo.write(53);delay(200);myservo.write(87);rPos = 1;} }
+
+ int period = 500;
+ 
+ if(!rPos){
+  if(lock){
+    time_start = millis();
+    while(millis()-time_start<period){
+      myservo.write(115);
+    }
+    time_start = millis();
+    while(millis()-time_start<period){
+      myservo.write(87);
+    }
+    rPos = 1;
+    }
+  else{
+    time_start = millis();
+    while(millis()-time_start<period){
+      myservo.write(53);
+    }
+    time_start = millis();
+    while(millis()-time_start<period){
+      myservo.write(87);
+    }
+    
+    rPos = 1;
+    } 
   }
+
+
+
+
+
   digitalWrite(motorVss, 0);
   if(!trigEvent){rPos=0;}
   }
